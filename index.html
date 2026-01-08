@@ -1,73 +1,38 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<title>ProTech Oferta AI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{font-family:Arial;margin:0;background:#f4f6fb}
-header{background:#0f172a;color:#fff;padding:40px;text-align:center}
-section{max-width:800px;margin:40px auto;background:#fff;padding:20px}
-input,textarea,select,button{width:100%;padding:10px;margin-top:10px}
-button{background:#2563eb;color:#fff;border:0;cursor:pointer}
-#result{white-space:pre-wrap;margin-top:20px}
-</style>
+  <meta charset="UTF-8" />
+  <title>Protech Oferta AI</title>
 </head>
 <body>
+  <h1>Generator Ofert AI</h1>
 
-<header>
-<h1>AI Generator Ofert</h1>
-<p>Profesjonalna oferta w 2 minuty</p>
-</header>
+  <textarea id="prompt" rows="6" cols="60" placeholder="Opisz ofertę..."></textarea>
+  <br /><br />
+  <button onclick="generate()">Generuj</button>
 
-<section>
-<form id="form">
-<select id="industry">
-<option>Elektryka</option>
-<option>Fotowoltaika</option>
-<option>Budownictwo</option>
-</select>
+  <pre id="result"></pre>
 
-<textarea id="scope" placeholder="Zakres prac"></textarea>
-<input id="price" placeholder="Cena">
-<input id="deadline" placeholder="Termin">
-<textarea id="company" placeholder="Dane firmy"></textarea>
+  <script>
+    async function generate() {
+      const resultBox = document.getElementById("result");
+      resultBox.textContent = "Generowanie...";
 
-<button>Generuj ofertę</button>
-</form>
+      try {
+        const response = await fetch("/.netlify/functions/generateOffer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: document.getElementById("prompt").value,
+          }),
+        });
 
-<div id="result"></div>
-</section>
-
-<script>
-document.getElementById("form").addEventListener("submit", async e => {
-e.preventDefault();
-
-const payload = {
-industry: industry.value,
-scope: scope.value,
-price: price.value,
-deadline: deadline.value,
-company: company.value
-};
-
-result.textContent = "Generowanie oferty...";
-
-try {
-const res = await fetch("/.netlify/functions/generateOffer", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify(payload)
-});
-
-const data = await res.json();
-result.textContent = data.text || data.error;
-
-} catch (err) {
-result.textContent = "Błąd: " + err.message;
-}
-});
-</script>
-
+        const data = await response.json();
+        resultBox.textContent = data.text || data.error || "Brak danych";
+      } catch (err) {
+        resultBox.textContent = "Błąd JS: " + err.message;
+      }
+    }
+  </script>
 </body>
 </html>
