@@ -1,11 +1,30 @@
-exports.handler = async (event) => {
+export async function handler(event) {
   try {
+    if (event.httpMethod !== "POST") {
+      return {
+        statusCode: 405,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Method Not Allowed" }),
+      };
+    }
+
     const data = JSON.parse(event.body || "{}");
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!data.prompt) {
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Brak promptu" }),
+      };
+    }
+
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+    if (!OPENAI_API_KEY) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "Brak OPENAI_API_KEY w Netlify" })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Brak klucza OPENAI_API_KEY" }),
       };
     }
 
@@ -13,38 +32,34 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + process.env.OPENAI_API_KEY
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "Jesteś ekspertem od ofert handlowych." },
-          { role: "user", content:
-`Branża: ${data.industry}
-Zakres: ${data.scope}
-Cena: ${data.price}
-Termin: ${data.deadline}
-Firma: ${data.company}
-
-Napisz profesjonalną ofertę handlową.` }
-        ]
-      })
+          { role: "system", content: "Jesteś asystentem do generowania ofert." },
+          { role: "user", content: data.prompt },
+        ],
+      }),
     });
 
-    const text = await response.text();
-    const json = JSON.parse(text);
+    const result = await response.json();
 
     return {
       statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        text: json.choices[0].message.content
-      })
+        text: result.choices?.[0]?.message?.content || "Brak odpowiedzi AI",
+      }),
     };
-
-  } catch (e) {
+  } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: e.message })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        error: "Błąd serwera",
+        details: error.message,
+      }),
     };
   }
-};
+}
