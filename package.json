@@ -4,5 +4,7 @@
   "description": "Generator ofert handlowych AI",
   "main": "index.js",
   "scripts": {},
-  "dependencies": {}
+  "dependencies": {
+    "openai": "^4.10.0"
+  }
 }
