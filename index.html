@@ -2,57 +2,170 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Protech Oferta AI</title>
+<title>ProtechOferta AI – Profesjonalny Generator Ofert</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; line-height: 1.6; }
-  h1 { text-align: center; }
-  label { display: block; margin-top: 15px; font-weight: bold; }
-  select, input, textarea { width: 100%; padding: 8px; margin-top: 5px; }
-  button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
-  pre { background: #f5f5f5; padding: 15px; margin-top: 20px; white-space: pre-wrap; }
+body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; line-height: 1.6; }
+h1 { text-align: center; }
+label { display: block; margin-top: 15px; font-weight: bold; }
+select, input, textarea { width: 100%; padding: 8px; margin-top: 5px; }
+button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+pre { background: #f5f5f5; padding: 15px; margin-top: 20px; white-space: pre-wrap; }
+.tooltip { font-size: 12px; color: #555; }
 </style>
 </head>
 <body>
 
-<h1>Generator Ofert Handlowych AI</h1>
+<h1>ProtechOferta AI – Generator Profesjonalnych Ofert</h1>
+
+<label for="sector">Wybierz sektor / branżę:</label>
+<select id="sector" onchange="updateCompanies()">
+  <option value="">-- Wybierz sektor --</option>
+  <option value="Budownictwo">Budownictwo</option>
+  <option value="Fotowoltaika">Fotowoltaika</option>
+  <option value="Elektryka">Elektryka</option>
+  <option value="HVAC / Klimatyzacja">HVAC / Klimatyzacja</option>
+  <option value="Hydraulika / Instalacje wod-kan">Hydraulika / Instalacje wod-kan</option>
+</select>
+<span class="tooltip">Wybierz branżę, dla której generujesz ofertę</span>
 
 <label for="company">Wybierz firmę:</label>
 <select id="company">
-  <option value="Budtech">Budtech</option>
-  <option value="InwestorX">InwestorX</option>
-  <option value="DomPlus">DomPlus</option>
+  <option value="">-- Wybierz firmę --</option>
 </select>
+<span class="tooltip">Wybierz firmę z listy powiązanej z branżą</span>
 
 <label for="offerType">Rodzaj oferty:</label>
 <select id="offerType">
-  <option value="Dom jednorodzinny">Dom jednorodzinny</option>
-  <option value="Mieszkanie">Mieszkanie</option>
-  <option value="Biuro / Lokal usługowy">Biuro / Lokal usługowy</option>
+  <option value="">-- Wybierz typ oferty --</option>
 </select>
+<span class="tooltip">Typ oferty dostosowany do branży</span>
 
-<label for="area">Powierzchnia (m²):</label>
-<input type="number" id="area" placeholder="np. 120">
+<label for="area">Powierzchnia / moc (m² / kWp):</label>
+<input type="number" id="area" placeholder="np. 120 m² / 10 kWp">
 
 <label for="price">Cena (PLN):</label>
-<input type="number" id="price" placeholder="np. 50000">
+<input type="number" id="price" placeholder="np. 50 000 PLN">
 
 <label for="deadline">Termin realizacji:</label>
-<input type="date" id="deadline">
+<input type="date" id="deadline" placeholder="Wybierz datę">
 
 <label for="extra">Dodatkowe informacje:</label>
 <textarea id="extra" rows="4" placeholder="np. wymagania klienta, szczegóły projektu..."></textarea>
 
 <button onclick="generate()">Generuj ofertę</button>
 <button onclick="copyOffer()">Kopiuj do schowka</button>
+<button onclick="downloadPDF()">Pobierz PDF</button>
 
 <pre id="result">Tu pojawi się wygenerowana oferta...</pre>
 
 <script>
+// Mega baza firm według branż
+const companiesBySector = {
+  "Budownictwo": ["ProtechOferta","Budimex","Strabag","PORR","Mirbud","Erbud","Unibep","Polimex-Mostostal","DomPlus Instalacje","WARBUD","Mostostal Warszawa","Dekpol","Pekabex","Goldbeck Polska"],
+  "Fotowoltaika": ["PV Expert Polska","SolarTech Instalacje","EcoEnergia Serwis","EnergiaDach","PowerGreen PV","GreenVolt","SunPro Instalacje","Fotowoltaika Polska","SolarWay","SunEnergy Solutions"],
+  "Elektryka": ["ElektroMasters","Instal-Elektra","SmartHome Elektryka","ElektroLine Usługi Techniczne","EnergoPro Usługi","Elektryk-Pro","ElektroSystem","PowerLine Serwis","ElektraTech","Volt-Experts"],
+  "HVAC / Klimatyzacja": ["KlimatPro Serwis HVAC","TechInstal Polska","Ciepło&Woda Serwis","SmartInstal Solutions","CoolTech HVAC","AirMaster","ClimaPro"],
+  "Hydraulika / Instalacje wod-kan": ["HydroTerm Serwis","InstalSerwis24","Ciepło&Woda Serwis","TechInstal Polska","AquaTech","HydroPro Solutions","WaterLine Serwis"]
+};
+
+const offerTypes = {
+  "Budownictwo": ["Dom jednorodzinny","Mieszkanie","Biuro / Lokal usługowy","Remont / Wykończenie"],
+  "Fotowoltaika": ["Instalacja fotowoltaiczna","Montaż paneli PV","Przegląd i serwis PV"],
+  "Elektryka": ["Instalacja elektryczna","Przegląd elektryczny","Modernizacja instalacji"],
+  "HVAC / Klimatyzacja": ["System HVAC / Klimatyzacja","Serwis klimatyzacji","Montaż systemów wentylacyjnych"],
+  "Hydraulika / Instalacje wod-kan": ["Instalacja wod-kan","Serwis hydrauliczny","Modernizacja instalacji"]
+};
+
+// Aktualizacja firm i typów ofert dynamicznie
+function updateCompanies() {
+  const sector = document.getElementById("sector").value;
+  const companySelect = document.getElementById("company");
+  const offerSelect = document.getElementById("offerType");
+  companySelect.innerHTML = '<option value="">-- Wybierz firmę --</option>';
+  offerSelect.innerHTML = '<option value="">-- Wybierz typ oferty --</option>';
+  if(companiesBySector[sector]){
+    companiesBySector[sector].forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      companySelect.appendChild(opt);
+    });
+  }
+  if(offerTypes[sector]){
+    offerTypes[sector].forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      offerSelect.appendChild(opt);
+    });
+  }
+}
+
+// Generowanie oferty z AI
 async function generate() {
   const resultBox = document.getElementById("result");
   resultBox.textContent = "Generowanie oferty...";
 
   const prompt = `
 Stwórz profesjonalną ofertę handlową dla firmy ${document.getElementById("company").value}.
+Branża: ${document.getElementById("sector").value}
 Rodzaj oferty: ${document.getElementById("offerType").value}
-Powierzchnia: ${document.getElementById("area").v
+Powierzchnia / moc: ${document.getElementById("area").value}
+Cena: ${document.getElementById("price").value} PLN
+Termin realizacji: ${document.getElementById("deadline").value}
+Dodatkowe informacje: ${document.getElementById("extra").value}
+Użyj formalnego języka, podziel ofertę na sekcje: nagłówek, dane firmy, oferta szczegółowa, zalety firmy, podsumowanie, kontakt.
+Dodaj profesjonalny układ z punktami i pogrubieniami.
+Dostosuj język i przykłady do branży.
+`;
+
+  try {
+    const response = await fetch("/.netlify/functions/generateOffer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+
+    const data = await response.json();
+    resultBox.textContent = data.text || data.error || "Brak odpowiedzi AI";
+  } catch (err) {
+    resultBox.textContent = "Błąd JS: " + err.message;
+  }
+}
+
+// Kopiowanie do schowka
+function copyOffer() {
+  const resultBox = document.getElementById("result");
+  if(resultBox.textContent.trim() === "") return alert("Brak wygenerowanej oferty");
+  navigator.clipboard.writeText(resultBox.textContent).then(() => {
+    alert("Oferta skopiowana do schowka!");
+  });
+}
+
+// Pobieranie PDF
+function downloadPDF() {
+  const resultBox = document.getElementById("result");
+  if(resultBox.textContent.trim() === "") return alert("Brak wygenerowanej oferty");
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const lines = resultBox.textContent.split("\n");
+  let y = 10;
+  lines.forEach(line => {
+    doc.text(line, 10, y);
+    y += 7;
+    if(y > 280){ doc.addPage(); y=10; }
+  });
+
+  doc.save("Oferta_ProtechOferta.pdf");
+}
+
+// Automatyczne ustawienie daty dzisiejszej jako placeholder
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('deadline').setAttribute('placeholder', today);
+</script>
+
+</body>
+</html>
