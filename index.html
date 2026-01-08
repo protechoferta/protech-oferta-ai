@@ -58,7 +58,7 @@ Dodatkowe informacje: ${extra}.
   responseDiv.textContent = "Generowanie...";
 
   try {
-    const res = await fetch('/api/generateOffer', {
+    const res = await fetch("/api/generateOffer", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
