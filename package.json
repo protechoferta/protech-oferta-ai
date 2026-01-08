@@ -1,0 +1,8 @@
+{
+  "name": "protech-oferta-ai",
+  "version": "1.0.0",
+  "description": "Generator ofert handlowych AI",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
